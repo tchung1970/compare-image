@@ -67,7 +67,7 @@ body { background: #1a1d2e; color: #fff; font-family: -apple-system, BlinkMacSys
 
 /* Side by side mode */
 .side-by-side { display: none; flex: 1; background: #0f1119; min-height: 0; overflow: hidden; align-items: center; justify-content: center; }
-.side-by-side .panel { display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; height: 100%; }
+.side-by-side .panel { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; height: 100%; }
 .side-by-side .panel img { max-height: 100%; max-width: 100%; transition: none; user-select: none; -webkit-user-drag: none; }
 .side-by-side .divider { width: 2px; background: rgba(255,255,255,0.1); align-self: stretch; }
 
