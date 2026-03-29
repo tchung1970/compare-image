@@ -309,8 +309,8 @@ function updateInfoTags() {
   const extB = fileBObj.name.split('.').pop().toUpperCase();
   const resA = imgA.naturalWidth ? `${imgA.naturalWidth}×${imgA.naturalHeight}` : '';
   const resB = imgB.naturalWidth ? `${imgB.naturalWidth}×${imgB.naturalHeight}` : '';
-  infoTagA.textContent = `${fileAObj.name} — ${extA} ${resA}`;
-  infoTagB.textContent = `${fileBObj.name} — ${extB} ${resB}`;
+  infoTagA.textContent = `${fileAObj.name} (${extA} ${resA})`;
+  infoTagB.textContent = `${fileBObj.name} (${extB} ${resB})`;
 }
 
 // View mode
