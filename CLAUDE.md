@@ -16,10 +16,10 @@ Open `index.html` directly in a browser. No server required (uses `URL.createObj
 - **Two screens**: Upload screen (`#uploadScreen`) and compare mode (header + compare view). Toggled by showing/hiding DOM elements in `startCompare()` and `backBtn` click handler.
 - **Upload screen**: Drag-and-drop or file picker for two images (A = left, B = right). Drop on a specific box or anywhere on the screen (auto-fills A then B).
 - **Split view** (default): Both images overlaid with a draggable vertical slider controlling a CSS `clip-path` to reveal left/right. Image A is clipped on top of Image B.
-- **Side-by-side view**: Two independent panels separated by a divider.
+- **Side-by-side view**: Two independent panels (`flex: 1`) separated by a divider. Images use `object-fit: contain` with absolute positioning so different resolutions are normalized to the same visual size.
 - **Four `<img>` elements**: `imgA`/`imgB` for split mode, `imgA2`/`imgB2` for side-by-side mode. All four share the same object URLs.
 - **Zoom/Pan**: Scroll wheel for zoom (0.5x–10x), click-drag to pan when zoomed >1x. Transform applied to all four image elements via `updateTransform()`. Split-mode images use `translate(-50%, -50%)` centering; side-by-side images don't.
-- **Info bar**: Shows file extension and native resolution (`naturalWidth×naturalHeight`) for each image.
+- **Info bar**: Shows file name, extension, and native resolution as `filename (EXT WxH)` for each image. Each tag takes 50% width, centered within its half to align with the split/side-by-side panels below.
 
 ## Key Globals
 
