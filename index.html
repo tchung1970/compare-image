@@ -68,7 +68,7 @@ body { background: #1a1d2e; color: #fff; font-family: -apple-system, BlinkMacSys
 /* Side by side mode */
 .side-by-side { display: none; flex: 1; background: #0f1119; min-height: 0; overflow: hidden; align-items: center; justify-content: center; }
 .side-by-side .panel { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; height: 100%; }
-.side-by-side .panel img { max-height: 100%; max-width: 100%; transition: none; user-select: none; -webkit-user-drag: none; }
+.side-by-side .panel img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; transition: none; user-select: none; -webkit-user-drag: none; }
 .side-by-side .divider { width: 2px; background: rgba(255,255,255,0.1); align-self: stretch; }
 
 /* Labels */
@@ -379,7 +379,6 @@ function updateTransform() {
   allImgs.forEach(img => {
     if (img === imgA2 || img === imgB2) {
       img.style.transform = `scale(${zoom}) translate(${panX}px, ${panY}px)`;
-      img.style.transformOrigin = 'center center';
     } else {
       img.style.transform = `translate(-50%, -50%) scale(${zoom}) translate(${panX}px, ${panY}px)`;
     }
