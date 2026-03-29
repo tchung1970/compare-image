@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Compare Video</title>
+<title>Compare Image</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { background: #1a1d2e; color: #fff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
@@ -38,7 +38,7 @@ body { background: #1a1d2e; color: #fff; font-family: -apple-system, BlinkMacSys
 .upload-box .sublabel { color: rgba(255,255,255,0.4); font-size: 14px; margin-top: 8px; }
 .upload-box .filename { color: rgba(120,140,255,0.8); font-size: 12px; margin-top: 8px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .upload-box input { display: none; }
-.upload-box video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.upload-box img.thumb { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .upload-box .overlay-label { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); padding: 5px 14px; border-radius: 8px; font-size: 12px; color: rgba(255,255,255,0.9); font-weight: 500; }
 .btn-row { display: flex; gap: 12px; }
 .compare-btn { padding: 14px 40px; background: rgba(120,140,255,0.2); color: rgba(255,255,255,0.9); border: 1px solid rgba(120,140,255,0.25); border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
@@ -54,8 +54,7 @@ body { background: #1a1d2e; color: #fff; font-family: -apple-system, BlinkMacSys
 .compare-container.active-drag { cursor: grabbing; }
 .video-wrapper { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
 .video-inner { position: relative; width: 100%; height: 100%; }
-.compare-container video { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); max-width: 100%; max-height: 100%; }
-.compare-container.zoomed video { max-width: none; max-height: none; }
+.compare-container img { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100%; height: 100%; object-fit: contain; user-select: none; -webkit-user-drag: none; }
 
 /* Split slider */
 .split-clip { position: absolute; inset: 0; overflow: hidden; }
@@ -69,7 +68,7 @@ body { background: #1a1d2e; color: #fff; font-family: -apple-system, BlinkMacSys
 /* Side by side mode */
 .side-by-side { display: none; flex: 1; background: #0f1119; min-height: 0; overflow: hidden; align-items: center; justify-content: center; }
 .side-by-side .panel { display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; height: 100%; }
-.side-by-side .panel video { height: 100%; transition: none; }
+.side-by-side .panel img { max-height: 100%; max-width: 100%; transition: none; user-select: none; -webkit-user-drag: none; }
 .side-by-side .divider { width: 2px; background: rgba(255,255,255,0.1); align-self: stretch; }
 
 /* Labels */
@@ -77,15 +76,7 @@ body { background: #1a1d2e; color: #fff; font-family: -apple-system, BlinkMacSys
 .video-label.left { left: 12px; }
 .video-label.right { right: 12px; }
 
-/* Controls */
-.controls { display: none; background: rgba(26,29,46,0.95); backdrop-filter: blur(12px); padding: 10px 20px 14px; z-index: 10; border-top: 1px solid rgba(255,255,255,0.06); }
-.timeline { width: 100%; height: 4px; background: rgba(255,255,255,0.08); border-radius: 4px; cursor: pointer; margin-bottom: 10px; position: relative; transition: height 0.15s; }
-.timeline:hover { height: 6px; }
-.timeline-progress { height: 100%; background: linear-gradient(90deg, rgba(120,140,255,0.6), rgba(120,140,255,0.9)); border-radius: 4px; width: 0; pointer-events: none; }
-.controls-row { display: flex; align-items: center; justify-content: center; gap: 12px; }
-.ctrl-btn { background: rgba(255,255,255,0.06); border: none; color: rgba(255,255,255,0.7); cursor: pointer; font-size: 20px; padding: 6px 10px; display: flex; align-items: center; border-radius: 8px; transition: all 0.2s; }
-.ctrl-btn:hover { background: rgba(120,140,255,0.15); color: #fff; }
-.time-display { font-size: 13px; color: rgba(255,255,255,0.4); font-variant-numeric: tabular-nums; font-weight: 500; }
+/* Info bar */
 .info-bar { display: flex; justify-content: space-between; padding: 6px 20px; background: rgba(26,29,46,0.95); backdrop-filter: blur(12px); }
 .info-tag { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.45); padding: 4px 12px; border-radius: 8px; font-size: 11px; font-weight: 500; letter-spacing: 0.3px; }
 </style>
@@ -94,33 +85,33 @@ body { background: #1a1d2e; color: #fff; font-family: -apple-system, BlinkMacSys
 
 <!-- Upload Screen -->
 <div class="upload-screen" id="uploadScreen">
-  <h2>Compare Video</h2>
+  <h2>Compare Image</h2>
   <div class="upload-card">
     <div class="upload-box" id="uploadA" onclick="document.getElementById('fileA').click()">
-      <span class="upload-icon">&#127916;</span>
-      <span class="label">Drop video here or click</span>
-      <span class="sublabel">Video A (Left)</span>
+      <span class="upload-icon">&#128444;</span>
+      <span class="label">Drop image here or click</span>
+      <span class="sublabel">Image A (Left)</span>
       <span class="filename" id="nameA"></span>
-      <input type="file" id="fileA" accept="video/*">
+      <input type="file" id="fileA" accept="image/*">
     </div>
     <div class="upload-box" id="uploadB" onclick="document.getElementById('fileB').click()">
-      <span class="upload-icon">&#127916;</span>
-      <span class="label">Drop video here or click</span>
-      <span class="sublabel">Video B (Right)</span>
+      <span class="upload-icon">&#128444;</span>
+      <span class="label">Drop image here or click</span>
+      <span class="sublabel">Image B (Right)</span>
       <span class="filename" id="nameB"></span>
-      <input type="file" id="fileB" accept="video/*">
+      <input type="file" id="fileB" accept="image/*">
     </div>
   </div>
   <div class="btn-row">
     <button class="compare-btn" id="compareBtn" disabled>Compare</button>
     <button class="compare-btn" id="uploadResetBtn" disabled>Reset</button>
   </div>
-  <div class="footer-link">Written in <a href="https://www.anthropic.com/news/claude-opus-4-6" target="_blank" class="footer-link"><span>Claude Opus 4.6</span></a> | <a href="https://github.com/tchung1970/compare-video" target="_blank" class="footer-link"><span>GitHub</span></a></div>
+  <div class="footer-link">Written in <a href="https://www.anthropic.com/news/claude-opus-4-6" target="_blank" class="footer-link"><span>Claude Opus 4.6</span></a> | <a href="https://github.com/tchung1970/compare-image" target="_blank" class="footer-link"><span>GitHub</span></a></div>
 </div>
 
 <!-- Header (shown in compare mode) -->
 <div class="header" id="header" style="display:none;">
-  <div class="logo">Compare Video</div>
+  <div class="logo">Compare Image</div>
   <div class="view-toggle">
     <button id="splitBtn" class="active" title="Split View">Split View</button>
     <button id="sideBtn" title="Side by Side">Side by Side</button>
@@ -140,11 +131,11 @@ body { background: #1a1d2e; color: #fff; font-family: -apple-system, BlinkMacSys
 <div class="compare-container" id="compareView">
   <div class="video-wrapper" id="videoWrapper">
     <div class="video-inner" id="videoInner">
-      <!-- Video B (right / underneath in split) -->
-      <video id="vidB" muted playsinline></video>
-      <!-- Video A (left, clipped) -->
+      <!-- Image B (right / underneath in split) -->
+      <img id="imgB">
+      <!-- Image A (left, clipped) -->
       <div class="split-clip" id="splitClip">
-        <video id="vidA" muted playsinline></video>
+        <img id="imgA">
       </div>
     </div>
   </div>
@@ -156,20 +147,9 @@ body { background: #1a1d2e; color: #fff; font-family: -apple-system, BlinkMacSys
 
 <!-- Side by Side View -->
 <div class="side-by-side" id="sideBySide">
-  <div class="panel"><video id="vidA2" muted playsinline></video></div>
+  <div class="panel"><img id="imgA2"></div>
   <div class="divider"></div>
-  <div class="panel"><video id="vidB2" muted playsinline></video></div>
-</div>
-
-<!-- Controls -->
-<div class="controls" id="controls">
-  <div class="timeline" id="timeline">
-    <div class="timeline-progress" id="timelineProgress"></div>
-  </div>
-  <div class="controls-row" style="justify-content:center;">
-    <button class="ctrl-btn" id="playPauseBtn" title="Play/Pause" style="font-size:24px;">&#9654;&#65039;</button>
-    <span class="time-display" id="timeDisplay">00:00 / 00:00</span>
-  </div>
+  <div class="panel"><img id="imgB2"></div>
 </div>
 
 <script>
@@ -184,18 +164,13 @@ const uploadScreen = document.getElementById('uploadScreen');
 const header = document.getElementById('header');
 const compareView = document.getElementById('compareView');
 const sideBySide = document.getElementById('sideBySide');
-const controls = document.getElementById('controls');
-const vidA = document.getElementById('vidA');
-const vidB = document.getElementById('vidB');
-const vidA2 = document.getElementById('vidA2');
-const vidB2 = document.getElementById('vidB2');
+const imgA = document.getElementById('imgA');
+const imgB = document.getElementById('imgB');
+const imgA2 = document.getElementById('imgA2');
+const imgB2 = document.getElementById('imgB2');
 const splitClip = document.getElementById('splitClip');
 const sliderLine = document.getElementById('sliderLine');
 const sliderHandle = document.getElementById('sliderHandle');
-const timeline = document.getElementById('timeline');
-const timelineProgress = document.getElementById('timelineProgress');
-const playPauseBtn = document.getElementById('playPauseBtn');
-const timeDisplay = document.getElementById('timeDisplay');
 const splitBtn = document.getElementById('splitBtn');
 const sideBtn = document.getElementById('sideBtn');
 const zoomBadge = document.getElementById('zoomBadge');
@@ -203,7 +178,6 @@ const resetBtn = document.getElementById('resetBtn');
 const backBtn = document.getElementById('backBtn');
 const labelA = document.getElementById('labelA');
 const labelB = document.getElementById('labelB');
-const infoTags = document.getElementById('infoTags');
 const videoInner = document.getElementById('videoInner');
 const infoBar = document.getElementById('infoBar');
 const infoTagA = document.getElementById('infoTagA');
@@ -212,7 +186,6 @@ const infoTagB = document.getElementById('infoTagB');
 let fileAObj = null, fileBObj = null;
 let sliderPos = 0.5;
 let mode = 'split'; // 'split' or 'side'
-let playing = false;
 let draggingSlider = false;
 let zoom = 1;
 let panX = 0, panY = 0;
@@ -220,19 +193,16 @@ let isPanning = false, panStartX, panStartY, panStartPanX, panStartPanY;
 
 // Upload handling
 function showThumbnail(box, file) {
-  let thumb = box.querySelector('video.thumb');
+  let thumb = box.querySelector('img.thumb');
   if (!thumb) {
-    thumb = document.createElement('video');
+    thumb = document.createElement('img');
     thumb.className = 'thumb';
-    thumb.muted = true;
-    thumb.playsInline = true;
     box.appendChild(thumb);
     const lbl = document.createElement('span');
     lbl.className = 'overlay-label';
     box.appendChild(lbl);
   }
   thumb.src = URL.createObjectURL(file);
-  thumb.currentTime = 0.5;
   box.querySelector('.overlay-label').textContent = file.name;
   const ic = box.querySelector('.upload-icon'); if (ic) ic.style.display = 'none';
   box.querySelector('.label').style.display = 'none';
@@ -240,7 +210,7 @@ function showThumbnail(box, file) {
 }
 
 function handleFileA(file) {
-  if (file && file.type.startsWith('video/')) {
+  if (file && file.type.startsWith('image/')) {
     fileAObj = file;
     nameA.textContent = file.name;
     uploadA.classList.add('has-file');
@@ -249,7 +219,7 @@ function handleFileA(file) {
   }
 }
 function handleFileB(file) {
-  if (file && file.type.startsWith('video/')) {
+  if (file && file.type.startsWith('image/')) {
     fileBObj = file;
     nameB.textContent = file.name;
     uploadB.classList.add('has-file');
@@ -280,7 +250,7 @@ setupDrop(uploadB, handleFileB);
 uploadScreen.addEventListener('dragover', (e) => e.preventDefault());
 uploadScreen.addEventListener('drop', (e) => {
   e.preventDefault();
-  const files = [...e.dataTransfer.files].filter(f => f.type.startsWith('video/'));
+  const files = [...e.dataTransfer.files].filter(f => f.type.startsWith('image/'));
   if (files.length >= 1 && !fileAObj) handleFileA(files[0]);
   else if (files.length >= 1 && fileAObj && !fileBObj) handleFileB(files[0]);
   if (files.length >= 2) { handleFileA(files[0]); handleFileB(files[1]); }
@@ -300,7 +270,7 @@ uploadResetBtn.addEventListener('click', () => {
   uploadA.classList.remove('has-file');
   uploadB.classList.remove('has-file');
   [uploadA, uploadB].forEach(box => {
-    const thumb = box.querySelector('video.thumb');
+    const thumb = box.querySelector('img.thumb');
     if (thumb) thumb.remove();
     const ol = box.querySelector('.overlay-label');
     if (ol) ol.remove();
@@ -316,40 +286,39 @@ compareBtn.addEventListener('click', startCompare);
 function startCompare() {
   const urlA = URL.createObjectURL(fileAObj);
   const urlB = URL.createObjectURL(fileBObj);
-  vidA.src = urlA;
-  vidB.src = urlB;
-  vidA2.src = urlA;
-  vidB2.src = urlB;
+  imgA.src = urlA;
+  imgB.src = urlB;
+  imgA2.src = urlA;
+  imgB2.src = urlB;
   labelA.textContent = fileAObj.name;
   labelB.textContent = fileBObj.name;
 
   uploadScreen.style.display = 'none';
   header.style.display = 'flex';
   infoBar.style.display = 'flex';
-  controls.style.display = 'block';
   zoom = 1; panX = 0; panY = 0;
   sliderPos = 0.5;
   updateTransform();
   setMode('split');
 
-  // Wait for metadata
+  // Wait for images to load to get dimensions
   let loaded = 0;
-  const onMeta = () => {
+  const onLoad = () => {
     loaded++;
     if (loaded >= 2) {
       updateInfoTags();
       updateSlider();
     }
   };
-  vidA.addEventListener('loadedmetadata', onMeta, { once: true });
-  vidB.addEventListener('loadedmetadata', onMeta, { once: true });
+  imgA.addEventListener('load', onLoad, { once: true });
+  imgB.addEventListener('load', onLoad, { once: true });
 }
 
 function updateInfoTags() {
   const extA = fileAObj.name.split('.').pop().toUpperCase();
   const extB = fileBObj.name.split('.').pop().toUpperCase();
-  const resA = vidA.videoWidth ? `${vidA.videoWidth}x${vidA.videoHeight}` : '';
-  const resB = vidB.videoWidth ? `${vidB.videoWidth}x${vidB.videoHeight}` : '';
+  const resA = imgA.naturalWidth ? `${imgA.naturalWidth}×${imgA.naturalHeight}` : '';
+  const resB = imgB.naturalWidth ? `${imgB.naturalWidth}×${imgB.naturalHeight}` : '';
   infoTagA.textContent = `${extA} ${resA}`;
   infoTagB.textContent = `${extB} ${resB}`;
 }
@@ -362,15 +331,11 @@ function setMode(m) {
     sideBySide.style.display = 'none';
     splitBtn.classList.add('active');
     sideBtn.classList.remove('active');
-    syncVideos();
   } else {
     compareView.style.display = 'none';
     sideBySide.style.display = 'flex';
     splitBtn.classList.remove('active');
     sideBtn.classList.add('active');
-    vidA2.currentTime = vidA.currentTime;
-    vidB2.currentTime = vidB.currentTime;
-    if (playing) { vidA2.play(); vidB2.play(); }
   }
 }
 
@@ -408,93 +373,17 @@ document.addEventListener('touchend', () => { draggingSlider = false; });
 
 window.addEventListener('resize', () => { if (mode === 'split') updateSlider(); });
 
-// Play/Pause
-function togglePlay() {
-  if (playing) {
-    pause();
-  } else {
-    play();
-  }
-}
-
-function play() {
-  playing = true;
-  playPauseBtn.innerHTML = '&#9646;&#9646;';
-  if (mode === 'split') { vidA.play(); vidB.play(); }
-  else { vidA.play(); vidB.play(); vidA2.play(); vidB2.play(); }
-}
-
-function pause() {
-  playing = false;
-  playPauseBtn.innerHTML = '&#9654;&#65039;';
-  vidA.pause(); vidB.pause(); vidA2.pause(); vidB2.pause();
-}
-
-playPauseBtn.addEventListener('click', togglePlay);
-
-// Sync videos
-function syncVideos() {
-  if (mode === 'split') {
-    vidB.currentTime = vidA.currentTime;
-  }
-}
-
-// Time update
-vidA.addEventListener('timeupdate', () => {
-  const dur = Math.max(vidA.duration || 0, vidB.duration || 0);
-  if (!dur) return;
-  const cur = vidA.currentTime;
-  timelineProgress.style.width = (cur / dur * 100) + '%';
-  timeDisplay.textContent = `${fmt(cur)} / ${fmt(dur)}`;
-});
-
-vidA.addEventListener('ended', () => { pause(); });
-
-function fmt(s) {
-  const m = Math.floor(s / 60);
-  const sec = Math.floor(s % 60);
-  return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
-}
-
-// Timeline seek
-timeline.addEventListener('click', (e) => {
-  const rect = timeline.getBoundingClientRect();
-  const pct = (e.clientX - rect.left) / rect.width;
-  const dur = Math.max(vidA.duration || 0, vidB.duration || 0);
-  const t = pct * dur;
-  vidA.currentTime = t;
-  vidB.currentTime = t;
-  vidA2.currentTime = t;
-  vidB2.currentTime = t;
-});
-
-// Keyboard
-document.addEventListener('keydown', (e) => {
-  if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
-  if (e.code === 'ArrowLeft') { seekRelative(-5); }
-  if (e.code === 'ArrowRight') { seekRelative(5); }
-});
-
-function seekRelative(dt) {
-  const t = Math.max(0, vidA.currentTime + dt);
-  vidA.currentTime = t;
-  vidB.currentTime = t;
-  vidA2.currentTime = t;
-  vidB2.currentTime = t;
-}
-
 // Zoom & Pan
 function updateTransform() {
-  const allVids = [vidA, vidB, vidA2, vidB2];
-  allVids.forEach(v => {
-    if (v === vidA2 || v === vidB2) {
-      v.style.transform = `scale(${zoom}) translate(${panX}px, ${panY}px)`;
-      v.style.transformOrigin = 'center center';
+  const allImgs = [imgA, imgB, imgA2, imgB2];
+  allImgs.forEach(img => {
+    if (img === imgA2 || img === imgB2) {
+      img.style.transform = `scale(${zoom}) translate(${panX}px, ${panY}px)`;
+      img.style.transformOrigin = 'center center';
     } else {
-      v.style.transform = `translate(-50%, -50%) scale(${zoom}) translate(${panX}px, ${panY}px)`;
+      img.style.transform = `translate(-50%, -50%) scale(${zoom}) translate(${panX}px, ${panY}px)`;
     }
   });
-  compareView.classList.toggle('zoomed', zoom > 1);
   zoomBadge.textContent = Math.round(zoom * 100) + '%';
 }
 
@@ -550,35 +439,16 @@ document.addEventListener('mouseup', () => {
 
 // Back button
 backBtn.addEventListener('click', () => {
-  pause();
-  vidA.src = ''; vidB.src = ''; vidA2.src = ''; vidB2.src = '';
+  imgA.src = ''; imgB.src = ''; imgA2.src = ''; imgB2.src = '';
   uploadScreen.style.display = 'flex';
   header.style.display = 'none';
   compareView.style.display = 'none';
   sideBySide.style.display = 'none';
-  controls.style.display = 'none';
   infoBar.style.display = 'none';
   zoom = 1; panX = 0; panY = 0;
   sliderPos = 0.5;
   checkReady();
 });
-
-// Keep videos synced
-setInterval(() => {
-  if (!playing) return;
-  if (mode === 'split') {
-    if (Math.abs(vidA.currentTime - vidB.currentTime) > 0.1) {
-      vidB.currentTime = vidA.currentTime;
-    }
-  } else {
-    if (Math.abs(vidA.currentTime - vidA2.currentTime) > 0.1) vidA2.currentTime = vidA.currentTime;
-    if (Math.abs(vidB.currentTime - vidB2.currentTime) > 0.1) vidB2.currentTime = vidB.currentTime;
-    if (Math.abs(vidA.currentTime - vidB.currentTime) > 0.1) {
-      vidB.currentTime = vidA.currentTime;
-      vidB2.currentTime = vidA.currentTime;
-    }
-  }
-}, 200);
 </script>
 </body>
 </html>
