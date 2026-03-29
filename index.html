@@ -147,9 +147,9 @@ body { background: #1a1d2e; color: #fff; font-family: -apple-system, BlinkMacSys
 
 <!-- Side by Side View -->
 <div class="side-by-side" id="sideBySide">
-  <div class="panel"><img id="imgA2"></div>
+  <div class="panel"><img id="imgA2"><span class="video-label left" id="labelA2"></span></div>
   <div class="divider"></div>
-  <div class="panel"><img id="imgB2"></div>
+  <div class="panel"><img id="imgB2"><span class="video-label right" id="labelB2"></span></div>
 </div>
 
 <script>
@@ -292,6 +292,8 @@ function startCompare() {
   imgB2.src = urlB;
   labelA.textContent = fileAObj.name;
   labelB.textContent = fileBObj.name;
+  document.getElementById('labelA2').textContent = fileAObj.name;
+  document.getElementById('labelB2').textContent = fileBObj.name;
 
   uploadScreen.style.display = 'none';
   header.style.display = 'flex';
