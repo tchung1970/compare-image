@@ -28,7 +28,7 @@ body { background: #1a1d2e; color: #fff; font-family: -apple-system, BlinkMacSys
 .upload-screen h2 { font-size: 42px; font-weight: 800; color: rgba(255,255,255,0.95); letter-spacing: 4px; text-transform: uppercase; }
 .upload-card { background: rgba(100,120,180,0.08); border: 1px solid rgba(100,120,180,0.2); border-radius: 20px; padding: 24px; display: flex; gap: 20px; }
 .upload-row { display: flex; gap: 20px; }
-.upload-box { width: 250px; height: 400px; border: 2px dashed rgba(100,120,180,0.3); border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden; background: rgba(100,120,180,0.06); }
+.upload-box { width: 400px; height: 260px; border: 2px dashed rgba(100,120,180,0.3); border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s ease; position: relative; overflow: hidden; background: rgba(100,120,180,0.06); }
 .upload-box:hover { border-color: rgba(100,120,180,0.5); background: rgba(100,120,180,0.1); }
 .upload-box.dragover { border-color: rgba(120,140,255,0.5); background: rgba(120,140,255,0.08); }
 .upload-box.has-file { border-color: rgba(120,140,255,0.4); border-style: solid; }
@@ -38,7 +38,7 @@ body { background: #1a1d2e; color: #fff; font-family: -apple-system, BlinkMacSys
 .upload-box .sublabel { color: rgba(255,255,255,0.4); font-size: 14px; margin-top: 8px; }
 .upload-box .filename { color: rgba(120,140,255,0.8); font-size: 12px; margin-top: 8px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .upload-box input { display: none; }
-.upload-box img.thumb { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.upload-box img.thumb { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
 .upload-box .overlay-label { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); padding: 5px 14px; border-radius: 8px; font-size: 12px; color: rgba(255,255,255,0.9); font-weight: 500; }
 .btn-row { display: flex; gap: 12px; }
 .compare-btn { padding: 14px 40px; background: rgba(120,140,255,0.2); color: rgba(255,255,255,0.9); border: 1px solid rgba(120,140,255,0.25); border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
@@ -68,7 +68,7 @@ body { background: #1a1d2e; color: #fff; font-family: -apple-system, BlinkMacSys
 /* Side by side mode */
 .side-by-side { display: none; flex: 1; background: #0f1119; min-height: 0; overflow: hidden; align-items: stretch; }
 .side-by-side .panel { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; height: 100%; }
-.side-by-side .panel img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; transition: none; user-select: none; -webkit-user-drag: none; }
+.side-by-side .panel img { position: absolute; top: 50%; left: 50%; object-fit: contain; transition: none; user-select: none; -webkit-user-drag: none; }
 .side-by-side .divider { width: 2px; background: rgba(255,255,255,0.1); align-self: stretch; }
 
 
@@ -194,11 +194,48 @@ function showThumbnail(box, file) {
     lbl.className = 'overlay-label';
     box.appendChild(lbl);
   }
-  thumb.src = URL.createObjectURL(file);
+  const objUrl = URL.createObjectURL(file);
+  thumb.src = objUrl;
   box.querySelector('.overlay-label').textContent = file.name;
   const ic = box.querySelector('.upload-icon'); if (ic) ic.style.display = 'none';
   box.querySelector('.label').style.display = 'none';
   box.querySelector('.filename').style.display = 'none';
+
+  // Track natural dimensions for box normalization
+  const tempImg = new Image();
+  tempImg.onload = () => {
+    box.dataset.natW = tempImg.naturalWidth;
+    box.dataset.natH = tempImg.naturalHeight;
+    normalizeUploadBoxes();
+  };
+  tempImg.src = objUrl;
+}
+
+function normalizeUploadBoxes() {
+  const boxes = [uploadA, uploadB];
+  const maxW = 480, maxH = 360, minW = 200, minH = 160;
+
+  // Collect aspect ratios from loaded boxes
+  const ratios = boxes.filter(b => b.dataset.natW).map(b => +b.dataset.natW / +b.dataset.natH);
+  if (ratios.length === 0) return;
+
+  // Use the widest aspect ratio (smallest h for a given w) so both boxes match
+  const ratio = Math.max(...ratios);
+  let w, h;
+  if (ratio >= 1) {
+    w = maxW;
+    h = Math.max(minH, Math.round(maxW / ratio));
+  } else {
+    h = maxH;
+    w = Math.max(minW, Math.round(maxH * ratio));
+  }
+
+  boxes.forEach(b => {
+    if (b.dataset.natW) {
+      b.style.width = w + 'px';
+      b.style.height = h + 'px';
+    }
+  });
 }
 
 function handleFileA(file) {
@@ -269,6 +306,10 @@ uploadResetBtn.addEventListener('click', () => {
     const ic = box.querySelector('.upload-icon'); if (ic) ic.style.display = '';
     box.querySelector('.label').style.display = '';
     box.querySelector('.filename').style.display = '';
+    box.style.width = '';
+    box.style.height = '';
+    delete box.dataset.natW;
+    delete box.dataset.natH;
   });
   checkReady();
 });
@@ -313,6 +354,7 @@ function updateInfoTags() {
   infoTagB.textContent = `${fileBObj.name} (${extB} ${resB})`;
 }
 
+
 // View mode
 function setMode(m) {
   mode = m;
@@ -326,7 +368,29 @@ function setMode(m) {
     sideBySide.style.display = 'flex';
     splitBtn.classList.remove('active');
     sideBtn.classList.add('active');
+    requestAnimationFrame(normalizeSideBySide);
   }
+}
+
+function normalizeSideBySide() {
+  if (!imgA2.naturalWidth || !imgB2.naturalWidth) return;
+  const panel = sideBySide.querySelector('.panel');
+  const pw = panel.clientWidth, ph = panel.clientHeight;
+
+  const ratioA = imgA2.naturalWidth / imgA2.naturalHeight;
+  const ratioB = imgB2.naturalWidth / imgB2.naturalHeight;
+
+  // Compute contain-rendered height for each in its panel
+  const hA = Math.min(ph, pw / ratioA);
+  const hB = Math.min(ph, pw / ratioB);
+  const targetH = Math.min(hA, hB);
+
+  [imgA2, imgB2].forEach(img => {
+    const ratio = img.naturalWidth / img.naturalHeight;
+    img.style.width = (targetH * ratio) + 'px';
+    img.style.height = targetH + 'px';
+  });
+  updateTransform();
 }
 
 splitBtn.addEventListener('click', () => setMode('split'));
@@ -361,17 +425,13 @@ document.addEventListener('touchmove', (e) => {
 });
 document.addEventListener('touchend', () => { draggingSlider = false; });
 
-window.addEventListener('resize', () => { if (mode === 'split') updateSlider(); });
+window.addEventListener('resize', () => { if (mode === 'split') updateSlider(); else normalizeSideBySide(); });
 
 // Zoom & Pan
 function updateTransform() {
   const allImgs = [imgA, imgB, imgA2, imgB2];
   allImgs.forEach(img => {
-    if (img === imgA2 || img === imgB2) {
-      img.style.transform = `scale(${zoom}) translate(${panX}px, ${panY}px)`;
-    } else {
-      img.style.transform = `translate(-50%, -50%) scale(${zoom}) translate(${panX}px, ${panY}px)`;
-    }
+    img.style.transform = `translate(-50%, -50%) scale(${zoom}) translate(${panX}px, ${panY}px)`;
   });
   zoomBadge.textContent = Math.round(zoom * 100) + '%';
 }
