@@ -28,7 +28,7 @@ body { background: #1a1d2e; color: #fff; font-family: -apple-system, BlinkMacSys
 .upload-screen h2 { font-size: 42px; font-weight: 800; color: rgba(255,255,255,0.95); letter-spacing: 4px; text-transform: uppercase; }
 .upload-card { background: rgba(100,120,180,0.08); border: 1px solid rgba(100,120,180,0.2); border-radius: 20px; padding: 24px; display: flex; gap: 20px; }
 .upload-row { display: flex; gap: 20px; }
-.upload-box { width: 400px; height: 260px; border: 2px dashed rgba(100,120,180,0.3); border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s ease; position: relative; overflow: hidden; background: rgba(100,120,180,0.06); }
+.upload-box { width: 250px; height: 260px; border: 2px dashed rgba(100,120,180,0.3); border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s ease; position: relative; overflow: hidden; background: rgba(100,120,180,0.06); }
 .upload-box:hover { border-color: rgba(100,120,180,0.5); background: rgba(100,120,180,0.1); }
 .upload-box.dragover { border-color: rgba(120,140,255,0.5); background: rgba(120,140,255,0.08); }
 .upload-box.has-file { border-color: rgba(120,140,255,0.4); border-style: solid; }
@@ -213,28 +213,23 @@ function showThumbnail(box, file) {
 
 function normalizeUploadBoxes() {
   const boxes = [uploadA, uploadB];
-  const maxW = 480, maxH = 360, minW = 200, minH = 160;
-
-  // Collect aspect ratios from loaded boxes
-  const ratios = boxes.filter(b => b.dataset.natW).map(b => +b.dataset.natW / +b.dataset.natH);
+  const ratios = boxes.map(b => b.dataset.natW && b.dataset.natH ? b.dataset.natW / b.dataset.natH : null).filter(r => r !== null);
   if (ratios.length === 0) return;
-
-  // Use the widest aspect ratio (smallest h for a given w) so both boxes match
   const ratio = Math.max(...ratios);
+  const maxW = 480, maxH = 400, minW = 200, minH = 160;
   let w, h;
   if (ratio >= 1) {
     w = maxW;
-    h = Math.max(minH, Math.round(maxW / ratio));
+    h = Math.round(w / ratio);
+    if (h < minH) { h = minH; w = Math.round(h * ratio); }
   } else {
     h = maxH;
-    w = Math.max(minW, Math.round(maxH * ratio));
+    w = Math.round(h * ratio);
+    if (w < minW) { w = minW; h = Math.round(w / ratio); }
   }
-
   boxes.forEach(b => {
-    if (b.dataset.natW) {
-      b.style.width = w + 'px';
-      b.style.height = h + 'px';
-    }
+    b.style.width = w + 'px';
+    b.style.height = h + 'px';
   });
 }
 
