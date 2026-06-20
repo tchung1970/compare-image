@@ -377,6 +377,7 @@ function setMode(m) {
     sideBySide.style.display = 'none';
     splitBtn.classList.add('active');
     sideBtn.classList.remove('active');
+    requestAnimationFrame(updateSlider);
   } else {
     compareView.style.display = 'none';
     sideBySide.style.display = 'flex';
