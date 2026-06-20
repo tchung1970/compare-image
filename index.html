@@ -337,6 +337,7 @@ function startCompare() {
     if (loaded >= 2) {
       updateInfoTags();
       updateSlider();
+      normalizeSideBySide();
     }
   };
   imgA.addEventListener('load', onLoad, { once: true });
