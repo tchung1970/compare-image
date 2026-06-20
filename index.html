@@ -26,7 +26,6 @@ body { background: #1a1d2e; color: #fff; font-family: -apple-system, BlinkMacSys
 .zoom-input:focus { border-color: rgba(120,140,255,0.5); background: rgba(120,140,255,0.12); }
 .reset-btn { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.6); padding: 5px 14px; border-radius: 8px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid rgba(255,255,255,0.06); transition: all 0.2s; }
 .reset-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
-.reset-btn.active { background: rgba(120,140,255,0.18); color: rgba(255,255,255,0.92); border-color: rgba(120,140,255,0.25); }
 .back-btn { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.6); padding: 5px 14px; border-radius: 8px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid rgba(255,255,255,0.06); transition: all 0.2s; }
 .back-btn:hover { background: rgba(220,50,50,0.2); color: #f66; border-color: rgba(220,50,50,0.2); }
 
@@ -130,7 +129,6 @@ body { background: #1a1d2e; color: #fff; font-family: -apple-system, BlinkMacSys
       <button class="zoom-preset" data-zoom="5">500%</button>
       <span class="zoom-custom"><input class="zoom-input" id="zoomInput" type="text" inputmode="numeric" title="Custom zoom %">%</span>
     </div>
-    <button class="reset-btn active" id="alignBtn" title="Auto-align image B to A in split view">Auto-Align</button>
     <button class="reset-btn" id="captureBtn" title="Save comparison as PNG">Capture</button>
     <button class="reset-btn" id="resetBtn">Reset</button>
     <button class="back-btn" id="backBtn" title="Back to upload">Close</button>
@@ -188,7 +186,6 @@ const sideBtn = document.getElementById('sideBtn');
 const zoomInput = document.getElementById('zoomInput');
 const zoomPresets = Array.from(document.querySelectorAll('.zoom-preset'));
 const resetBtn = document.getElementById('resetBtn');
-const alignBtn = document.getElementById('alignBtn');
 const captureBtn = document.getElementById('captureBtn');
 const backBtn = document.getElementById('backBtn');
 const videoInner = document.getElementById('videoInner');
@@ -203,9 +200,6 @@ let draggingSlider = false;
 let zoom = 1;
 let panX = 0, panY = 0;
 let isPanning = false, panStartX, panStartY, panStartPanX, panStartPanY;
-// Auto-align: similarity transform applied to split-view image B (relative to A).
-let autoAlign = true;
-let alignS = 1, alignTxFrac = 0, alignTyFrac = 0; // scale, translation as fraction of displayed height
 
 // Upload handling
 function showThumbnail(box, file) {
@@ -357,11 +351,8 @@ function startCompare() {
     loaded++;
     if (loaded >= 2) {
       updateInfoTags();
-      updateTransform();
       updateSlider();
       normalizeSideBySide();
-      // Compute alignment after the first paint so the view isn't blocked.
-      setTimeout(() => { computeAutoAlign(); updateTransform(); }, 30);
     }
   };
   imgA.addEventListener('load', onLoad, { once: true });
@@ -386,7 +377,7 @@ function setMode(m) {
     sideBySide.style.display = 'none';
     splitBtn.classList.add('active');
     sideBtn.classList.remove('active');
-    requestAnimationFrame(() => { updateSlider(); updateTransform(); });
+    requestAnimationFrame(updateSlider);
   } else {
     compareView.style.display = 'none';
     sideBySide.style.display = 'flex';
@@ -453,28 +444,11 @@ window.addEventListener('resize', () => { if (mode === 'split') updateSlider(); 
 
 // Zoom & Pan
 function updateTransform() {
-  const base = `translate(-50%, -50%) scale(${zoom}) translate(${panX}px, ${panY}px)`;
-  // A (both views) and side-by-side B use the base transform unchanged.
-  imgA.style.transform = base;
-  imgA2.style.transform = base;
-  imgB2.style.transform = base;
-  // Split-view B carries the auto-align similarity transform (relative to A).
-  // Applied before zoom in the chain, so the registration scales with zoom on screen.
-  if (autoAlign && (alignS !== 1 || alignTxFrac || alignTyFrac)) {
-    const dh = displayedHeight();
-    imgB.style.transform = base + ` translate(${alignTxFrac * dh}px, ${alignTyFrac * dh}px) scale(${alignS})`;
-  } else {
-    imgB.style.transform = base;
-  }
+  const allImgs = [imgA, imgB, imgA2, imgB2];
+  allImgs.forEach(img => {
+    img.style.transform = `translate(-50%, -50%) scale(${zoom}) translate(${panX}px, ${panY}px)`;
+  });
   updateZoomUI();
-}
-
-// Displayed (contain-fit) height of the images in the split container at zoom 1.
-function displayedHeight() {
-  const r = compareView.getBoundingClientRect();
-  const ar = imgA.naturalWidth ? imgA.naturalWidth / imgA.naturalHeight : 1;
-  // portrait/landscape contain fit: limited by height or width
-  return (r.width / r.height > ar) ? r.height : r.width / ar;
 }
 
 function updateZoomUI() {
@@ -482,98 +456,6 @@ function updateZoomUI() {
     btn.classList.toggle('active', Math.abs(parseFloat(btn.dataset.zoom) - zoom) < 1e-9);
   });
   if (document.activeElement !== zoomInput) zoomInput.value = Math.round(zoom * 100);
-}
-
-// ---- Auto-align: estimate a global similarity transform (scale + translation)
-// mapping image B onto image A, via coarse-to-fine normalized cross-correlation.
-// No dependencies; both images are rendered to small grayscale buffers of equal height.
-function grayBuffer(img, H) {
-  const ar = img.naturalWidth / img.naturalHeight;
-  const W = Math.max(1, Math.round(H * ar));
-  const c = document.createElement('canvas');
-  c.width = W; c.height = H;
-  const cx = c.getContext('2d', { willReadFrequently: true });
-  cx.drawImage(img, 0, 0, W, H);
-  const d = cx.getImageData(0, 0, W, H).data;
-  const g = new Float32Array(W * H);
-  for (let i = 0, j = 0; i < d.length; i += 4, j++) g[j] = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-  return { g, W, H };
-}
-
-// Local block matching: best integer (dx,dy) aligning A's window at (px,py) to B (translation only).
-// Coarse-to-fine; samples the window sparsely for speed. Returns {v,dx,dy} (v = NCC peak).
-function bestShift(A, B, px, py, half, rng) {
-  const ga = A.g, WA = A.W, HA = A.H, gb = B.g, WB = B.W, HB = B.H;
-  const x0 = Math.max(0, px - half), x1 = Math.min(WA, px + half);
-  const y0 = Math.max(0, py - half), y1 = Math.min(HA, py + half);
-  const sstep = 3;
-  const ncc = (dx, dy) => {
-    let n = 0, sa = 0, sb = 0, saa = 0, sbb = 0, sab = 0;
-    for (let y = y0; y < y1; y += sstep) {
-      const by = y + dy; if (by < 0 || by >= HB) continue;
-      for (let x = x0; x < x1; x += sstep) {
-        const bx = x + dx; if (bx < 0 || bx >= WB) continue;
-        const a = ga[y * WA + x], b = gb[by * WB + bx];
-        n++; sa += a; sb += b; saa += a * a; sbb += b * b; sab += a * b;
-      }
-    }
-    if (n < 25) return -2;
-    const den = Math.sqrt((n * saa - sa * sa) * (n * sbb - sb * sb));
-    return den > 0 ? (n * sab - sa * sb) / den : -2;
-  };
-  let best = { v: -2, dx: 0, dy: 0 };
-  const cs = Math.max(2, Math.round(rng / 10));
-  for (let dy = -rng; dy <= rng; dy += cs)
-    for (let dx = -rng; dx <= rng; dx += cs) {
-      const v = ncc(dx, dy); if (v > best.v) best = { v, dx, dy };
-    }
-  const f = { dx: best.dx, dy: best.dy };
-  for (let dy = f.dy - cs; dy <= f.dy + cs; dy++)
-    for (let dx = f.dx - cs; dx <= f.dx + cs; dx++) {
-      const v = ncc(dx, dy); if (v > best.v) best = { v, dx, dy };
-    }
-  return best;
-}
-
-// Estimate a global similarity (scale + translation) for B onto A by measuring a
-// displacement field over a grid of blocks and least-squares fitting dx=(s-1)(x-cx)+Tx.
-function computeAutoAlign() {
-  alignS = 1; alignTxFrac = 0; alignTyFrac = 0;
-  if (!imgA.naturalWidth || !imgB.naturalWidth) return;
-  try {
-    const H = 900;
-    const A = grayBuffer(imgA, H), B = grayBuffer(imgB, H);
-    const W = A.W, cx = (W - 1) / 2, cy = (H - 1) / 2;
-    const half = Math.round(0.07 * H), rng = Math.round(0.06 * H);
-    const ux = [], uy = [], dxs = [], dys = [];
-    const fys = [0.18, 0.275, 0.37, 0.5, 0.63, 0.725, 0.82];
-    const fxs = [0.25, 0.417, 0.583, 0.75];
-    for (const fy of fys) for (const fx of fxs) {
-      const px = Math.round(fx * W), py = Math.round(fy * H);
-      const r = bestShift(A, B, px, py, half, rng);
-      if (r.v < 0.6) continue; // reject low-confidence matches
-      ux.push(px - cx); uy.push(py - cy); dxs.push(r.dx); dys.push(r.dy);
-    }
-    const n = ux.length;
-    if (n < 6) return; // too few confident matches — leave identity
-    const mean = arr => arr.reduce((s, v) => s + v, 0) / arr.length;
-    const mux = mean(ux), muy = mean(uy), mdx = mean(dxs), mdy = mean(dys);
-    let num = 0, den = 0;
-    for (let i = 0; i < n; i++) {
-      const uxc = ux[i] - mux, uyc = uy[i] - muy;
-      num += uxc * (dxs[i] - mdx) + uyc * (dys[i] - mdy);
-      den += uxc * uxc + uyc * uyc;
-    }
-    const a = den > 0 ? num / den : 0; // a = s - 1
-    const Tx = mdx - a * mux, Ty = mdy - a * muy;
-    const s = 1 + a;
-    if (!(s > 0.5 && s < 2)) return;
-    alignS = Math.max(0.7, Math.min(1.43, 1 / s));
-    alignTxFrac = Math.max(-0.2, Math.min(0.2, (-Tx / s) / H));
-    alignTyFrac = Math.max(-0.2, Math.min(0.2, (-Ty / s) / H));
-  } catch (e) {
-    alignS = 1; alignTxFrac = 0; alignTyFrac = 0;
-  }
 }
 
 // Preset zoom buttons set the level directly; the input takes a custom percentage.
@@ -668,12 +550,6 @@ function captureComparison() {
 
 captureBtn.addEventListener('click', captureComparison);
 
-alignBtn.addEventListener('click', () => {
-  autoAlign = !autoAlign;
-  alignBtn.classList.toggle('active', autoAlign);
-  updateTransform();
-});
-
 // Pan
 function startPan(e) {
   if (draggingSlider) return;
@@ -711,7 +587,6 @@ backBtn.addEventListener('click', () => {
   sideBySide.style.display = 'none';
   infoBar.style.display = 'none';
   zoom = 1; panX = 0; panY = 0;
-  alignS = 1; alignTxFrac = 0; alignTyFrac = 0;
   sliderPos = 0.5;
   checkReady();
 });
