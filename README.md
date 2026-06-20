@@ -12,6 +12,7 @@ https://ai.tchung.org/compare-image/
 - **Side-by-side view** — two independent panels for simultaneous viewing
 - **Different resolutions** — images of any size are normalized to the same dimensions for accurate comparison
 - **Zoom & pan** — click a preset button (100%/200%/300%/400%/500%) or type a custom percentage (50%–1000%); click-drag to pan when zoomed in
+- **Auto-align** — in split view, image B is automatically registered to image A (global scale + position) so the same region lines up across the slider; runs on load, no manual steps, and can be toggled off. Faithful upscales need no correction; differing renders get a best-fit similarity transform (it can't fix re-drawn detail, only global alignment)
 - **Capture** — save the current comparison (split or side-by-side, at the current zoom/pan) as a PNG, rendered client-side to a canvas
 - **Drag and drop** — drop files on specific boxes or anywhere on the upload screen
 - **Fully local** — uses `URL.createObjectURL`, nothing leaves your machine
