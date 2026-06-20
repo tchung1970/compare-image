@@ -110,8 +110,8 @@ body { background: #1a1d2e; color: #fff; font-family: -apple-system, BlinkMacSys
 <div class="header" id="header" style="display:none;">
   <div class="logo">Compare Image</div>
   <div class="view-toggle">
-    <button id="splitBtn" class="active" title="Split View">Split View</button>
-    <button id="sideBtn" title="Side by Side">Side by Side</button>
+    <button id="splitBtn" title="Split View">Split View</button>
+    <button id="sideBtn" class="active" title="Side by Side">Side by Side</button>
   </div>
   <div class="header-right">
     <span class="zoom-badge" id="zoomBadge" title="Click to cycle, double-click to type a custom zoom">100%</span>
@@ -178,7 +178,7 @@ const infoTagB = document.getElementById('infoTagB');
 
 let fileAObj = null, fileBObj = null;
 let sliderPos = 0.5;
-let mode = 'split'; // 'split' or 'side'
+let mode = 'side'; // 'split' or 'side'
 let draggingSlider = false;
 let zoom = 1;
 let panX = 0, panY = 0;
@@ -328,7 +328,7 @@ function startCompare() {
   zoom = 1; panX = 0; panY = 0;
   sliderPos = 0.5;
   updateTransform();
-  setMode('split');
+  setMode('side');
 
   // Wait for images to load to get dimensions
   let loaded = 0;
