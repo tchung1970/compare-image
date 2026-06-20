@@ -115,6 +115,7 @@ body { background: #1a1d2e; color: #fff; font-family: -apple-system, BlinkMacSys
   </div>
   <div class="header-right">
     <span class="zoom-badge" id="zoomBadge" title="Click to cycle, double-click to type a custom zoom">100%</span>
+    <button class="reset-btn" id="captureBtn" title="Save comparison as PNG">Capture</button>
     <button class="reset-btn" id="resetBtn">Reset</button>
     <button class="back-btn" id="backBtn" title="Back to upload">Close</button>
   </div>
@@ -170,6 +171,7 @@ const splitBtn = document.getElementById('splitBtn');
 const sideBtn = document.getElementById('sideBtn');
 const zoomBadge = document.getElementById('zoomBadge');
 const resetBtn = document.getElementById('resetBtn');
+const captureBtn = document.getElementById('captureBtn');
 const backBtn = document.getElementById('backBtn');
 const videoInner = document.getElementById('videoInner');
 const infoBar = document.getElementById('infoBar');
@@ -507,6 +509,61 @@ resetBtn.addEventListener('click', () => {
   sliderPos = 0.5;
   updateSlider();
 });
+
+// Capture the current comparison view to a PNG (no dependencies — drawn to canvas).
+// Reads each image's on-screen rect so zoom/pan/slider position are reproduced.
+function captureComparison() {
+  if (!fileAObj || !fileBObj) return;
+  const area = (mode === 'split') ? compareView : sideBySide;
+  const arect = area.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(arect.width * dpr);
+  canvas.height = Math.round(arect.height * dpr);
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.fillStyle = '#0f1119';
+  ctx.fillRect(0, 0, arect.width, arect.height);
+
+  const drawImg = (img, clipFrac) => {
+    if (!img.naturalWidth) return;
+    const er = img.getBoundingClientRect(); // element box, post-transform
+    // object-fit: contain — fit the natural image inside the element box
+    const ratio = img.naturalWidth / img.naturalHeight;
+    let w = er.width, h = er.width / ratio;
+    if (h > er.height) { h = er.height; w = er.height * ratio; }
+    const ix = er.left + (er.width - w) / 2 - arect.left;
+    const iy = er.top + (er.height - h) / 2 - arect.top;
+    ctx.save();
+    if (clipFrac != null) {
+      ctx.beginPath();
+      ctx.rect(0, 0, arect.width * clipFrac, arect.height); // left portion, matches slider line
+      ctx.clip();
+    }
+    ctx.drawImage(img, ix, iy, w, h);
+    ctx.restore();
+  };
+
+  if (mode === 'split') {
+    drawImg(imgB, null);          // base layer
+    drawImg(imgA, sliderPos);     // clipped overlay (left of the slider)
+  } else {
+    drawImg(imgA2, null);
+    drawImg(imgB2, null);
+  }
+
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.download = `compare-${mode}.png`;
+    a.href = url;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }, 'image/png');
+}
+
+captureBtn.addEventListener('click', captureComparison);
 
 // Pan
 function startPan(e) {
