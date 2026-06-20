@@ -505,7 +505,8 @@ function captureComparison() {
   ctx.fillStyle = '#0f1119';
   ctx.fillRect(0, 0, arect.width, arect.height);
 
-  const drawImg = (img, clipFrac) => {
+  // clip is {x,y,w,h} in area-local coords (matches the on-screen overflow:hidden), or null
+  const drawImg = (img, clip) => {
     if (!img.naturalWidth) return;
     const er = img.getBoundingClientRect(); // element box, post-transform
     // object-fit: contain — fit the natural image inside the element box
@@ -515,9 +516,9 @@ function captureComparison() {
     const ix = er.left + (er.width - w) / 2 - arect.left;
     const iy = er.top + (er.height - h) / 2 - arect.top;
     ctx.save();
-    if (clipFrac != null) {
+    if (clip) {
       ctx.beginPath();
-      ctx.rect(0, 0, arect.width * clipFrac, arect.height); // left portion, matches slider line
+      ctx.rect(clip.x, clip.y, clip.w, clip.h);
       ctx.clip();
     }
     ctx.drawImage(img, ix, iy, w, h);
@@ -526,10 +527,14 @@ function captureComparison() {
 
   if (mode === 'split') {
     drawImg(imgB, null);          // base layer
-    drawImg(imgA, sliderPos);     // clipped overlay (left of the slider)
+    drawImg(imgA, { x: 0, y: 0, w: arect.width * sliderPos, h: arect.height }); // left of the slider
   } else {
-    drawImg(imgA2, null);
-    drawImg(imgB2, null);
+    // Clip each image to its own panel so a zoomed image can't bleed across the divider.
+    const panels = sideBySide.querySelectorAll('.panel');
+    [imgA2, imgB2].forEach((img, i) => {
+      const pr = panels[i].getBoundingClientRect();
+      drawImg(img, { x: pr.left - arect.left, y: pr.top - arect.top, w: pr.width, h: pr.height });
+    });
   }
 
   canvas.toBlob((blob) => {
