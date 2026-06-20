@@ -15,10 +15,15 @@ body { background: #1a1d2e; color: #fff; font-family: -apple-system, BlinkMacSys
 .view-toggle button { background: none; border: none; color: rgba(255,255,255,0.4); padding: 7px 18px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s; border-radius: 8px; }
 .view-toggle button.active { background: rgba(120,140,255,0.15); color: rgba(255,255,255,0.9); }
 .view-toggle button:hover { color: rgba(255,255,255,0.8); }
+.header-left { display: flex; gap: 16px; align-items: center; }
 .header-right { display: flex; gap: 8px; align-items: center; }
-.zoom-badge { display: inline-block; background: rgba(120,140,255,0.2); color: rgba(255,255,255,0.85); padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid rgba(120,140,255,0.15); transition: all 0.2s; outline: none; min-width: 32px; text-align: center; }
-.zoom-badge[contenteditable="true"] { cursor: text; background: rgba(120,140,255,0.35); }
-.zoom-badge:hover { background: rgba(120,140,255,0.3); }
+.zoom-controls { display: flex; align-items: center; gap: 2px; background: rgba(255,255,255,0.06); border-radius: 10px; padding: 3px; }
+.zoom-preset { background: none; border: none; color: rgba(255,255,255,0.4); padding: 6px 9px; cursor: pointer; font-size: 12px; font-weight: 500; transition: all 0.2s; border-radius: 8px; }
+.zoom-preset.active { background: rgba(120,140,255,0.15); color: rgba(255,255,255,0.9); }
+.zoom-preset:hover { color: rgba(255,255,255,0.8); }
+.zoom-custom { display: flex; align-items: center; gap: 1px; margin-left: 4px; color: rgba(255,255,255,0.5); font-size: 12px; }
+.zoom-input { width: 40px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #fff; border-radius: 6px; padding: 5px 4px; font-size: 12px; font-weight: 500; text-align: center; outline: none; }
+.zoom-input:focus { border-color: rgba(120,140,255,0.5); background: rgba(120,140,255,0.12); }
 .reset-btn { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.6); padding: 5px 14px; border-radius: 8px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid rgba(255,255,255,0.06); transition: all 0.2s; }
 .reset-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
 .back-btn { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.6); padding: 5px 14px; border-radius: 8px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid rgba(255,255,255,0.06); transition: all 0.2s; }
@@ -108,13 +113,22 @@ body { background: #1a1d2e; color: #fff; font-family: -apple-system, BlinkMacSys
 
 <!-- Header (shown in compare mode) -->
 <div class="header" id="header" style="display:none;">
-  <div class="logo">Compare Image</div>
-  <div class="view-toggle">
-    <button id="splitBtn" title="Split View">Split View</button>
-    <button id="sideBtn" class="active" title="Side by Side">Side by Side</button>
+  <div class="header-left">
+    <div class="logo">Compare Image</div>
+    <div class="view-toggle">
+      <button id="splitBtn" title="Split View">Split View</button>
+      <button id="sideBtn" class="active" title="Side by Side">Side by Side</button>
+    </div>
   </div>
   <div class="header-right">
-    <span class="zoom-badge" id="zoomBadge" title="Click to cycle, double-click to type a custom zoom">100%</span>
+    <div class="zoom-controls">
+      <button class="zoom-preset" data-zoom="1">100%</button>
+      <button class="zoom-preset" data-zoom="2">200%</button>
+      <button class="zoom-preset" data-zoom="3">300%</button>
+      <button class="zoom-preset" data-zoom="4">400%</button>
+      <button class="zoom-preset" data-zoom="5">500%</button>
+      <span class="zoom-custom"><input class="zoom-input" id="zoomInput" type="text" inputmode="numeric" title="Custom zoom %">%</span>
+    </div>
     <button class="reset-btn" id="captureBtn" title="Save comparison as PNG">Capture</button>
     <button class="reset-btn" id="resetBtn">Reset</button>
     <button class="back-btn" id="backBtn" title="Back to upload">Close</button>
@@ -169,7 +183,8 @@ const sliderLine = document.getElementById('sliderLine');
 const sliderHandle = document.getElementById('sliderHandle');
 const splitBtn = document.getElementById('splitBtn');
 const sideBtn = document.getElementById('sideBtn');
-const zoomBadge = document.getElementById('zoomBadge');
+const zoomInput = document.getElementById('zoomInput');
+const zoomPresets = Array.from(document.querySelectorAll('.zoom-preset'));
 const resetBtn = document.getElementById('resetBtn');
 const captureBtn = document.getElementById('captureBtn');
 const backBtn = document.getElementById('backBtn');
@@ -184,8 +199,6 @@ let mode = 'side'; // 'split' or 'side'
 let draggingSlider = false;
 let zoom = 1;
 let panX = 0, panY = 0;
-let editingZoom = false;
-let zoomClickTimer = null;
 let isPanning = false, panStartX, panStartY, panStartPanX, panStartPanY;
 
 // Upload handling
@@ -434,7 +447,14 @@ function updateTransform() {
   allImgs.forEach(img => {
     img.style.transform = `translate(-50%, -50%) scale(${zoom}) translate(${panX}px, ${panY}px)`;
   });
-  if (!editingZoom) zoomBadge.textContent = Math.round(zoom * 100) + '%';
+  updateZoomUI();
+}
+
+function updateZoomUI() {
+  zoomPresets.forEach(btn => {
+    btn.classList.toggle('active', Math.abs(parseFloat(btn.dataset.zoom) - zoom) < 1e-9);
+  });
+  if (document.activeElement !== zoomInput) zoomInput.value = Math.round(zoom * 100);
 }
 
 function handleWheel(e) {
@@ -447,61 +467,30 @@ function handleWheel(e) {
 compareView.addEventListener('wheel', handleWheel, { passive: false });
 sideBySide.addEventListener('wheel', handleWheel, { passive: false });
 
-// Click cycles presets (100→200→300→400→500→100); double-click types a custom zoom.
-function cycleZoom() {
-  const presets = [2, 3, 4, 5];
-  const next = presets.find(p => p > zoom + 1e-9);
-  if (next) { zoom = next; } else { zoom = 1; panX = 0; panY = 0; }
-  updateTransform();
-}
+// Preset zoom buttons set the level directly; the input takes a custom percentage.
+zoomPresets.forEach(btn => {
+  btn.addEventListener('click', () => {
+    zoom = parseFloat(btn.dataset.zoom);
+    if (zoom === 1) { panX = 0; panY = 0; }
+    updateTransform();
+  });
+});
 
-function startZoomEdit() {
-  editingZoom = true;
-  zoomBadge.textContent = Math.round(zoom * 100);
-  zoomBadge.contentEditable = 'true';
-  zoomBadge.focus();
-  const range = document.createRange();
-  range.selectNodeContents(zoomBadge);
-  const sel = window.getSelection();
-  sel.removeAllRanges();
-  sel.addRange(range);
-}
-
-function commitZoomEdit() {
-  if (!editingZoom) return;
-  editingZoom = false;
-  zoomBadge.contentEditable = 'false';
-  const val = parseFloat(zoomBadge.textContent.replace('%', '').trim());
+function applyZoomInput() {
+  const val = parseFloat(zoomInput.value);
   if (!isNaN(val) && val > 0) {
     zoom = Math.max(0.5, Math.min(10, val / 100));
+    updateTransform();
+  } else {
+    updateZoomUI();
   }
-  updateTransform();
 }
 
-function cancelZoomEdit() {
-  editingZoom = false;
-  zoomBadge.contentEditable = 'false';
-  updateTransform();
-}
-
-zoomBadge.addEventListener('click', () => {
-  if (editingZoom) return;
-  clearTimeout(zoomClickTimer);
-  zoomClickTimer = setTimeout(cycleZoom, 220);
+zoomInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); applyZoomInput(); zoomInput.blur(); }
+  else if (e.key === 'Escape') { e.preventDefault(); updateZoomUI(); zoomInput.blur(); }
 });
-
-zoomBadge.addEventListener('dblclick', () => {
-  clearTimeout(zoomClickTimer);
-  if (!editingZoom) startZoomEdit();
-});
-
-zoomBadge.addEventListener('keydown', (e) => {
-  if (!editingZoom) return;
-  if (e.key === 'Enter') { e.preventDefault(); commitZoomEdit(); zoomBadge.blur(); }
-  else if (e.key === 'Escape') { e.preventDefault(); cancelZoomEdit(); zoomBadge.blur(); }
-});
-
-zoomBadge.addEventListener('blur', commitZoomEdit);
+zoomInput.addEventListener('blur', applyZoomInput);
 
 resetBtn.addEventListener('click', () => {
   zoom = 1; panX = 0; panY = 0;
