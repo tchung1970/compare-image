@@ -458,16 +458,6 @@ function updateZoomUI() {
   if (document.activeElement !== zoomInput) zoomInput.value = Math.round(zoom * 100);
 }
 
-function handleWheel(e) {
-  e.preventDefault();
-  const delta = e.deltaY > 0 ? 0.9 : 1.1;
-  zoom = Math.max(0.5, Math.min(10, zoom * delta));
-  updateTransform();
-}
-
-compareView.addEventListener('wheel', handleWheel, { passive: false });
-sideBySide.addEventListener('wheel', handleWheel, { passive: false });
-
 // Preset zoom buttons set the level directly; the input takes a custom percentage.
 zoomPresets.forEach(btn => {
   btn.addEventListener('click', () => {
