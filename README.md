@@ -11,7 +11,7 @@ https://ai.tchung.org/compare-image/
 - **Split view** — draggable vertical slider reveals left/right image with a CSS clip-path overlay
 - **Side-by-side view** — two independent panels for simultaneous viewing
 - **Different resolutions** — images of any size are normalized to the same dimensions for accurate comparison
-- **Zoom & pan** — scroll to zoom or click the badge to cycle 100%/200%/300%, click-drag to pan when zoomed in
+- **Zoom & pan** — scroll to zoom, click the badge to cycle 100%/200%/300%/400%/500%, or double-click the badge to type a custom zoom; click-drag to pan when zoomed in
 - **Drag and drop** — drop files on specific boxes or anywhere on the upload screen
 - **Fully local** — uses `URL.createObjectURL`, nothing leaves your machine
 

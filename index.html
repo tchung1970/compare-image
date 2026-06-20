@@ -16,7 +16,8 @@ body { background: #1a1d2e; color: #fff; font-family: -apple-system, BlinkMacSys
 .view-toggle button.active { background: rgba(120,140,255,0.15); color: rgba(255,255,255,0.9); }
 .view-toggle button:hover { color: rgba(255,255,255,0.8); }
 .header-right { display: flex; gap: 8px; align-items: center; }
-.zoom-badge { background: rgba(120,140,255,0.2); color: rgba(255,255,255,0.85); padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid rgba(120,140,255,0.15); transition: all 0.2s; }
+.zoom-badge { display: inline-block; background: rgba(120,140,255,0.2); color: rgba(255,255,255,0.85); padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid rgba(120,140,255,0.15); transition: all 0.2s; outline: none; min-width: 32px; text-align: center; }
+.zoom-badge[contenteditable="true"] { cursor: text; background: rgba(120,140,255,0.35); }
 .zoom-badge:hover { background: rgba(120,140,255,0.3); }
 .reset-btn { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.6); padding: 5px 14px; border-radius: 8px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid rgba(255,255,255,0.06); transition: all 0.2s; }
 .reset-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
@@ -113,7 +114,7 @@ body { background: #1a1d2e; color: #fff; font-family: -apple-system, BlinkMacSys
     <button id="sideBtn" title="Side by Side">Side by Side</button>
   </div>
   <div class="header-right">
-    <button class="zoom-badge" id="zoomBadge">100%</button>
+    <span class="zoom-badge" id="zoomBadge" title="Click to cycle, double-click to type a custom zoom">100%</span>
     <button class="reset-btn" id="resetBtn">Reset</button>
     <button class="back-btn" id="backBtn" title="Back to upload">Close</button>
   </div>
@@ -181,6 +182,8 @@ let mode = 'split'; // 'split' or 'side'
 let draggingSlider = false;
 let zoom = 1;
 let panX = 0, panY = 0;
+let editingZoom = false;
+let zoomClickTimer = null;
 let isPanning = false, panStartX, panStartY, panStartPanX, panStartPanY;
 
 // Upload handling
@@ -428,7 +431,7 @@ function updateTransform() {
   allImgs.forEach(img => {
     img.style.transform = `translate(-50%, -50%) scale(${zoom}) translate(${panX}px, ${panY}px)`;
   });
-  zoomBadge.textContent = Math.round(zoom * 100) + '%';
+  if (!editingZoom) zoomBadge.textContent = Math.round(zoom * 100) + '%';
 }
 
 function handleWheel(e) {
@@ -441,10 +444,61 @@ function handleWheel(e) {
 compareView.addEventListener('wheel', handleWheel, { passive: false });
 sideBySide.addEventListener('wheel', handleWheel, { passive: false });
 
-zoomBadge.addEventListener('click', () => {
-  if (zoom === 1) { zoom = 2; } else if (zoom === 2) { zoom = 3; } else { zoom = 1; panX = 0; panY = 0; }
+// Click cycles presets (100→200→300→400→500→100); double-click types a custom zoom.
+function cycleZoom() {
+  const presets = [2, 3, 4, 5];
+  const next = presets.find(p => p > zoom + 1e-9);
+  if (next) { zoom = next; } else { zoom = 1; panX = 0; panY = 0; }
   updateTransform();
+}
+
+function startZoomEdit() {
+  editingZoom = true;
+  zoomBadge.textContent = Math.round(zoom * 100);
+  zoomBadge.contentEditable = 'true';
+  zoomBadge.focus();
+  const range = document.createRange();
+  range.selectNodeContents(zoomBadge);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+
+function commitZoomEdit() {
+  if (!editingZoom) return;
+  editingZoom = false;
+  zoomBadge.contentEditable = 'false';
+  const val = parseFloat(zoomBadge.textContent.replace('%', '').trim());
+  if (!isNaN(val) && val > 0) {
+    zoom = Math.max(0.5, Math.min(10, val / 100));
+  }
+  updateTransform();
+}
+
+function cancelZoomEdit() {
+  editingZoom = false;
+  zoomBadge.contentEditable = 'false';
+  updateTransform();
+}
+
+zoomBadge.addEventListener('click', () => {
+  if (editingZoom) return;
+  clearTimeout(zoomClickTimer);
+  zoomClickTimer = setTimeout(cycleZoom, 220);
 });
+
+zoomBadge.addEventListener('dblclick', () => {
+  clearTimeout(zoomClickTimer);
+  if (!editingZoom) startZoomEdit();
+});
+
+zoomBadge.addEventListener('keydown', (e) => {
+  if (!editingZoom) return;
+  if (e.key === 'Enter') { e.preventDefault(); commitZoomEdit(); zoomBadge.blur(); }
+  else if (e.key === 'Escape') { e.preventDefault(); cancelZoomEdit(); zoomBadge.blur(); }
+});
+
+zoomBadge.addEventListener('blur', commitZoomEdit);
 
 resetBtn.addEventListener('click', () => {
   zoom = 1; panX = 0; panY = 0;

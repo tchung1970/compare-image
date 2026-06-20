@@ -18,7 +18,7 @@ Open `index.html` directly in a browser. No server required (uses `URL.createObj
 - **Split view** (default): Both images overlaid with a draggable vertical slider controlling a CSS `clip-path` to reveal left/right. Image A is clipped on top of Image B.
 - **Side-by-side view**: Two independent panels (`flex: 1`) separated by a divider. `normalizeSideBySide()` computes the contain-rendered height for each image and constrains both to the smaller height, so images with different resolutions appear at the same visual size.
 - **Four `<img>` elements**: `imgA`/`imgB` for split mode, `imgA2`/`imgB2` for side-by-side mode. All four share the same object URLs.
-- **Zoom/Pan**: Scroll wheel for zoom (0.5x–10x), click-drag to pan when zoomed >1x. Transform applied to all four image elements via `updateTransform()`. All images use `translate(-50%, -50%)` centering.
+- **Zoom/Pan**: Scroll wheel for zoom (0.5x–10x), click-drag to pan when zoomed >1x. The zoom badge is a `contenteditable` `<span>` (not a button): single-click cycles presets 100→200→300→400→500→100 (debounced 220ms via `cycleZoom()`), double-click enters edit mode (`startZoomEdit()`) to type a custom percentage (clamped 0.5x–10x on commit). `editingZoom` guards `updateTransform()` so it won't overwrite the field mid-edit. Transform applied to all four image elements via `updateTransform()`. All images use `translate(-50%, -50%)` centering.
 - **Info bar**: Shows file name, extension, and native resolution as `filename (EXT WxH)` for each image. Each tag takes 50% width, centered within its half to align with the split/side-by-side panels below.
 
 ## Key Globals
