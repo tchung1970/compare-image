@@ -22,7 +22,7 @@ Open `index.html` in a browser. No build step, no dependencies, no server requir
 
 1. Drop or select two image files (A = left, B = right)
 2. Click **Compare**
-3. Compare in side-by-side view (default) or switch to the split slider
+3. Use the split slider (default) or switch to side-by-side view
 4. Set zoom with the preset buttons or custom field, drag to pan
 
 ## Example

@@ -116,8 +116,8 @@ body { background: #1a1d2e; color: #fff; font-family: -apple-system, BlinkMacSys
   <div class="header-left">
     <div class="logo">Compare Image</div>
     <div class="view-toggle">
-      <button id="splitBtn" title="Split View">Split View</button>
-      <button id="sideBtn" class="active" title="Side by Side">Side by Side</button>
+      <button id="splitBtn" class="active" title="Split View">Split View</button>
+      <button id="sideBtn" title="Side by Side">Side by Side</button>
     </div>
   </div>
   <div class="header-right">
@@ -195,7 +195,7 @@ const infoTagB = document.getElementById('infoTagB');
 
 let fileAObj = null, fileBObj = null;
 let sliderPos = 0.5;
-let mode = 'side'; // 'split' or 'side'
+let mode = 'split'; // 'split' or 'side'
 let draggingSlider = false;
 let zoom = 1;
 let panX = 0, panY = 0;
@@ -343,7 +343,7 @@ function startCompare() {
   zoom = 1; panX = 0; panY = 0;
   sliderPos = 0.5;
   updateTransform();
-  setMode('side');
+  setMode('split');
 
   // Wait for images to load to get dimensions
   let loaded = 0;
